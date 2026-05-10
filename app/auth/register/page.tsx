@@ -3,10 +3,11 @@
 import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Store, TruckIcon, Eye, EyeOff, ArrowLeft, ArrowRight, CheckCircle, Building2, MapPin, User, Mail, Lock, Phone } from "lucide-react"
+import { Store, TruckIcon, Eye, EyeOff, ArrowLeft, ArrowRight, CheckCircle, Building2, User, Mail, Lock, Phone } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { getSupabasePublicEnv } from "@/lib/supabase/config"
+import { getAuthCallbackRedirectUrl, getSupabasePublicEnv } from "@/lib/supabase/config"
 import { dashboardPathForRole } from "@/lib/auth/dashboard-path"
+import { ColombiaLocationSelect } from "@/components/colombia-location-select"
 
 type UserRole = "tendero" | "proveedor"
 type Step = 1 | 2 | 3
@@ -22,7 +23,6 @@ function RegisterPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
-  const [authInfo, setAuthInfo] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     // Step 2 - Personal
@@ -36,6 +36,7 @@ function RegisterPageContent() {
     businessName: "",
     businessType: "",
     nit: "",
+    department: "",
     city: "",
     address: "",
     acceptTerms: false,
@@ -44,7 +45,6 @@ function RegisterPageContent() {
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole)
     setAuthError(null)
-    setAuthInfo(null)
     setStep(2)
   }
 
@@ -60,13 +60,11 @@ function RegisterPageContent() {
     e.preventDefault()
     if (step === 2) {
       setAuthError(null)
-      setAuthInfo(null)
       setStep(3)
       return
     }
 
     setAuthError(null)
-    setAuthInfo(null)
 
     const { isConfigured } = getSupabasePublicEnv()
 
@@ -83,6 +81,11 @@ function RegisterPageContent() {
       return
     }
 
+    if (!formData.department?.trim() || !formData.city?.trim()) {
+      setAuthError("Selecciona departamento y ciudad / municipio en Colombia.")
+      return
+    }
+
     setIsLoading(true)
     try {
       const supabase = createClient()
@@ -91,7 +94,7 @@ function RegisterPageContent() {
         email: formData.email.trim(),
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+          emailRedirectTo: getAuthCallbackRedirectUrl(nextPath),
           data: {
             full_name: `${formData.firstName} ${formData.lastName}`.trim(),
             role: role ?? "tendero",
@@ -99,7 +102,8 @@ function RegisterPageContent() {
             business_name: formData.businessName,
             business_type: formData.businessType,
             nit: formData.nit,
-            city: formData.city,
+            department: formData.department.trim(),
+            city: formData.city.trim(),
             address: formData.address,
           },
         },
@@ -111,8 +115,8 @@ function RegisterPageContent() {
       if (data.session) {
         router.push(nextPath)
       } else {
-        setAuthInfo(
-          "Revisa tu correo para confirmar la cuenta. En desarrollo puedes desactivar «Confirm email» en Supabase (Authentication → Providers → Email)."
+        router.push(
+          `/auth/verify-email?email=${encodeURIComponent(formData.email.trim())}&next=${encodeURIComponent(nextPath)}`
         )
       }
     } catch (err) {
@@ -203,7 +207,7 @@ function RegisterPageContent() {
 
               <p className="mt-8 text-center text-sm text-muted-foreground">
                 {"¿Ya tienes cuenta?"}{" "}
-                <Link href="/auth/login" className="font-medium text-primary hover:text-primary/80">
+                <Link href="/auth/continue" className="font-medium text-primary hover:text-primary/80">
                   Iniciar sesión
                 </Link>
               </p>
@@ -217,7 +221,6 @@ function RegisterPageContent() {
                 type="button"
                 onClick={() => {
                   setAuthError(null)
-                  setAuthInfo(null)
                   setStep(1)
                 }}
                 className="mb-4 flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -372,7 +375,7 @@ function RegisterPageContent() {
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 {"¿Ya tienes cuenta?"}{" "}
-                <Link href="/auth/login" className="font-medium text-primary hover:text-primary/80">
+                <Link href="/auth/continue" className="font-medium text-primary hover:text-primary/80">
                   Iniciar sesión
                 </Link>
               </p>
@@ -386,7 +389,6 @@ function RegisterPageContent() {
                 type="button"
                 onClick={() => {
                   setAuthError(null)
-                  setAuthInfo(null)
                   setStep(2)
                 }}
                 className="mb-4 flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -406,11 +408,6 @@ function RegisterPageContent() {
                 {authError ? (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {authError}
-                  </div>
-                ) : null}
-                {authInfo ? (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                    {authInfo}
                   </div>
                 ) : null}
                 <div>
@@ -484,29 +481,16 @@ function RegisterPageContent() {
                 </div>
 
                 <div>
-                  <label htmlFor="city" className="mb-1.5 block text-sm font-medium text-foreground">
-                    Ciudad
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Ubicación en Colombia
                   </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <select
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                      className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="">Seleccionar ciudad...</option>
-                      <option value="bogota">Bogotá</option>
-                      <option value="medellin">Medellín</option>
-                      <option value="cali">Cali</option>
-                      <option value="barranquilla">Barranquilla</option>
-                      <option value="cartagena">Cartagena</option>
-                      <option value="bucaramanga">Bucaramanga</option>
-                      <option value="pereira">Pereira</option>
-                    </select>
-                  </div>
+                  <ColombiaLocationSelect
+                    department={formData.department}
+                    city={formData.city}
+                    onDepartmentChange={(d) => setFormData((p) => ({ ...p, department: d, city: "" }))}
+                    onCityChange={(c) => setFormData((p) => ({ ...p, city: c }))}
+                    idPrefix="register"
+                  />
                 </div>
 
                 <div>

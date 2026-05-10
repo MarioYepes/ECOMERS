@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Store, Eye, EyeOff, ArrowRight, Mail, Lock, CheckCircle } from "lucide-react"
+import { Store, Eye, EyeOff, ArrowRight, Mail, Lock, CheckCircle, MapPin } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getSupabasePublicEnv } from "@/lib/supabase/config"
 import { dashboardPathForRole } from "@/lib/auth/dashboard-path"
@@ -18,6 +18,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams()
   const { isConfigured } = getSupabasePublicEnv()
   const urlError = searchParams.get("error")
+  const urlMessage = searchParams.get("message")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(
@@ -62,16 +63,30 @@ function LoginPageContent() {
         setAuthError(error.message)
         return
       }
-      let role = data.user?.user_metadata?.role as string | undefined
+      if (!data.user) {
+        setAuthError("No se pudo iniciar sesión.")
+        return
+      }
+      let role = data.user.user_metadata?.role as string | undefined
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", data.user!.id)
+        .eq("id", data.user.id)
         .maybeSingle()
       if (!profileError && profile?.role) {
         role = profile.role
       }
       const fallback = dashboardPathForRole(role)
+
+      if (!data.user.email_confirmed_at) {
+        await supabase.auth.signOut()
+        router.push(
+          `/auth/verify-email?email=${encodeURIComponent(formData.email.trim())}&next=${encodeURIComponent(fallback)}&reason=login`
+        )
+        router.refresh()
+        return
+      }
+
       router.push(safeInternalPath(searchParams.get("next"), fallback))
       router.refresh()
     } catch (err) {
@@ -103,8 +118,23 @@ function LoginPageContent() {
             <p className="mt-2 text-sm text-muted-foreground">
               Ingresa a tu cuenta para continuar
             </p>
+            <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>
+                TenderMarket está pensado para negocios en Colombia. Elige departamento y municipio al{" "}
+                <Link href="/auth/register" className="font-medium text-primary hover:underline">
+                  registrarte
+                </Link>{" "}
+                o actualízalos en <strong className="font-medium text-foreground">Mi perfil</strong>.
+              </span>
+            </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+              {urlMessage === "password_reset_ok" ? (
+                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                  Contraseña actualizada correctamente. Inicia sesión con tu nueva contraseña.
+                </div>
+              ) : null}
               {authError ? (
                 <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {authError}
@@ -242,6 +272,14 @@ function LoginPageContent() {
               {"¿No tienes cuenta?"}{" "}
               <Link href="/auth/register" className="font-medium text-primary hover:text-primary/80">
                 Registrarse
+              </Link>
+            </p>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              <Link
+                href="/auth/verify-email"
+                className="font-medium text-primary hover:text-primary/80"
+              >
+                ¿Debes verificar el correo? Reenviar enlace
               </Link>
             </p>
           </div>

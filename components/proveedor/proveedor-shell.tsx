@@ -77,12 +77,15 @@ export function ProveedorShell({
   return (
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
+        <Link
+          href="/proveedor/dashboard"
+          className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border px-6 transition-opacity hover:opacity-90"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
             <TruckIcon className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
           <span className="text-lg font-bold text-sidebar-foreground">TenderMarket</span>
-        </div>
+        </Link>
 
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
@@ -127,12 +130,12 @@ export function ProveedorShell({
           <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
           <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-sidebar lg:hidden">
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-              <div className="flex items-center gap-2">
+              <Link href="/proveedor/dashboard" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
                   <TruckIcon className="h-4 w-4 text-sidebar-primary-foreground" />
                 </div>
                 <span className="text-lg font-bold text-sidebar-foreground">TenderMarket</span>
-              </div>
+              </Link>
               <button type="button" onClick={() => setSidebarOpen(false)} className="text-sidebar-foreground">
                 <X className="h-5 w-5" />
               </button>

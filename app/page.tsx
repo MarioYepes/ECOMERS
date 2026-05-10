@@ -43,7 +43,7 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-3">
             <Link 
-              href="/auth/login" 
+              href="/auth/continue" 
               className="hidden text-sm font-medium text-foreground transition-colors hover:text-primary sm:block"
             >
               Iniciar Sesión
@@ -404,7 +404,7 @@ export default function LandingPage() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link 
-                href="/auth/login"
+                href="/auth/continue"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-primary-foreground/30 px-6 py-3 text-base font-semibold text-primary-foreground transition-all hover:bg-primary-foreground/10 sm:w-auto"
               >
                 Ya tengo cuenta

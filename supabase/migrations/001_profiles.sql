@@ -1,8 +1,11 @@
 -- TenderMarket — ejecutar en Supabase: SQL Editor → New query → Run
+-- Luego aplicar el dominio POS: 002_pos_domain.sql (pedidos, productos, carrito, etc.)
+-- y 003_profile_extended.sql (bio, web, horario en profiles).
 --
 -- Antes, en el panel de Supabase:
 -- Authentication → URL Configuration → Site URL: http://localhost:3000
--- Redirect URLs: http://localhost:3000/auth/callback
+-- Redirect URLs: http://localhost:3000/auth/callback, /auth/login, /auth/update-password
+-- (callback = confirmación de registro; login = enlace de recuperación; añade tu dominio en prod).
 --
 -- Para desarrollo rápido: Authentication → Providers → Email → desactivar «Confirm email»
 --

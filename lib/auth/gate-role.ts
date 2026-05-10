@@ -17,6 +17,8 @@ export type ProfileRow = {
   nit: string | null
   city: string | null
   address: string | null
+  account_status?: "activo" | "inactivo" | "bloqueado" | null
+  city_id?: string | null
 }
 
 export type GateOk =
@@ -63,7 +65,7 @@ export async function gateDashboardArea(
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, role, phone, business_name, business_type, nit, city, address"
+      "id, full_name, role, phone, business_name, business_type, nit, city, address, account_status, city_id"
     )
     .eq("id", user.id)
     .maybeSingle()
